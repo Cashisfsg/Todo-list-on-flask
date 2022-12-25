@@ -1,19 +1,11 @@
-import React, { useState, useEffect, memo } from "react";
-import useFetch from "../hooks/useFetch";
+import React, { useState, memo } from "react";
 import TableHeader from "../components/TableHeader";
 import TodoItem from "../components/TodoItem";
 import axios from "../axios/axios";
 
 const TodoList = ({ todos, setTodos, editTodo }) => {
-    // const { isLoading, error } = useFetch("/todos");
-
     const [filteredTodos, setFilteredTodos] = useState(todos);
 
-    // useEffect(() => {
-    //     setFilteredTodos(todos);
-    // }, []);
-    console.log("Todos: ", todos);
-    // console.log("Filtered Todos: ", filteredTodos);
     const toogleTodo = async (id) => {
         const todo = todos.find((todo) => todo.id === id);
 
@@ -22,18 +14,12 @@ const TodoList = ({ todos, setTodos, editTodo }) => {
             completed: !todo.completed,
         });
 
-        setTodos((todos) =>
-            todos.map((todo) => {
-                if (todo?.id === id) {
-                    return { ...todo, completed: !todo.completed };
-                } else return todo;
-            })
-        );
+        setTodos({ type: "toogleTodo", payload: id });
     };
 
     const deleteTodo = async (id) => {
         await axios.delete("/todos", { data: { id: id } });
-        setTodos((todos) => todos.filter((todo) => todo.id !== id));
+        setTodos({ type: "deleteTodo", payload: id });
     };
 
     return (

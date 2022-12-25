@@ -1,4 +1,10 @@
-import React, { useState, useCallback } from "react";
+import React, {
+    useState,
+    useEffect,
+    useRef,
+    useCallback,
+    useReducer,
+} from "react";
 import useFetch from "./hooks/useFetch";
 import Input from "./components/Input";
 import Filters from "./components/Filters";
@@ -7,17 +13,57 @@ import TodoList from "./components/TodoList";
 import axios from "./axios/axios";
 
 function App() {
-    const [todos, setTodos] = useState([]);
+    const [todos, setTodos] = useReducer((todos, action) => {
+        console.log(action);
+        switch (action.type) {
+            case "setTodos":
+                return [...todos, ...action.payload];
+            case "addTodo": {
+                return [...todos, action.payload];
+            }
+            case "toogleTodo": {
+                return todos.map((todo) => {
+                    if (todo?.id === action.payload) {
+                        return { ...todo, completed: !todo.completed };
+                    } else return todo;
+                });
+            }
+            case "submitTodo": {
+                console.log("Submit: ", action.payload);
+                return todos.map((todo) => {
+                    if (todo.id === action.payload.id) {
+                        return action.payload;
+                    } else {
+                        return todo;
+                    }
+                });
+            }
+            case "deleteTodo": {
+                return todos.filter((todo) => todo.id !== action.payload);
+            }
+            default: {
+                return todos;
+            }
+        }
+    }, []);
+
     const { isLoading, error } = useFetch("/todos", setTodos);
 
     const [editedTodoID, setEditedTodoID] = useState(null);
     const [title, setTitle] = useState("");
 
+    const inputRef = useRef(null);
+
+    useEffect(() => {
+        if (editedTodoID) {
+            inputRef.current.focus();
+        }
+    }, [editedTodoID]);
+
     const handleTodo = () => {
         if (!title.length) return;
         if (editedTodoID) {
             submitTodo();
-            console.log("Submit Todo");
         } else {
             addTodo();
         }
@@ -26,32 +72,25 @@ function App() {
 
     const addTodo = async () => {
         const response = await axios.post("/todos", { title: title });
-
         const data = response.data;
-
-        setTodos((todos) => [...todos, data]);
+        setTodos({ type: "addTodo", payload: data });
     };
 
-    const editTodo = useCallback((id) => {
-        setEditedTodoID(id);
-        console.log("ID: ", id);
-        console.log("ID: ", id);
-        console.log("Todos: ", todos);
-        // setTitle(todos.find((todo) => todo.id === id)?.title ?? "");
-        setTitle(todos.find((todo) => todo.id === id)?.title);
-    }, []);
+    const editTodo = useCallback(
+        (id) => {
+            setEditedTodoID(id);
+            setTitle(todos.find((todo) => todo.id === id)?.title ?? "");
+        },
+        [todos]
+    );
 
     const submitTodo = async () => {
         const response = await axios.patch("/todos", {
             id: editedTodoID,
             title: title,
         });
-
-        const data = response.data;
-
-        setTodos((todos) =>
-            todos.map((todo) => (todo?.id !== editedTodoID ? todo : data))
-        );
+        const data = await response.data;
+        setTodos({ type: "submitTodo", payload: data });
         setEditedTodoID(null);
     };
 
@@ -68,7 +107,7 @@ function App() {
                     </button>
                     <Filters setFilteredTodos={() => {}} />
                 </div>
-                <Input title={title} setTitle={setTitle} />
+                <Input title={title} setTitle={setTitle} ref={inputRef} />
             </section>
             {!isLoading && (
                 <TodoList

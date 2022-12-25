@@ -3,7 +3,6 @@ import { useState, useLayoutEffect } from "react";
 import axios from "../axios/axios";
 
 const useFetch = (query, setData) => {
-    // const [data, setData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -13,9 +12,8 @@ const useFetch = (query, setData) => {
 
         try {
             const response = await axios.get(query);
-            // console.log("Response: ", response);
             const data = await response.data;
-            setData(data);
+            setData({ type: "setTodos", payload: data });
         } catch (error) {
             setError(error);
         } finally {
